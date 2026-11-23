@@ -1,9 +1,5 @@
-// ===== إعدادات نماء — عدّل هذه القيم الثلاث فقط =====
 window.NAMAA_CONFIG = {
-  // من Supabase: Project Settings → API → Project URL
-  url: 'https://xxxx.supabase.co',
-  // من Supabase: Project Settings → API → anon public key (مفتاح عام، آمن وضعه هنا)
-  anonKey: 'ضع-المفتاح-العام-هنا',
-  // من أداة tools/vapid.html: المفتاح العام للإشعارات
-  vapidPublic: ''
+  url: 'https://frqcbqyybvqnfpawhcft.supabase.co',
+  anonKey: 'sb_publishable_Mpac73QifSSkDP1rLDxvAg_3lcOITnA',
+  vapidPublic: 'BOhLACKPeYxwWSchAh4_Ypouqdru-Sdbs0BzE1XhspHoaC66dSwa8p9wKGkvlnZQ-onj9cbA7RqMI4Kwf1-6zQY'
 };
