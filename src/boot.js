@@ -14,6 +14,7 @@ render(true);
   cfgSeen=true;ensureSubs();flush();
  }else{try{await ensureSession()}catch(e){}}
  queueRender();
+ setTimeout(()=>pruneMsgs(),8000);
  const expire=()=>{const m=ME();if(!m||m.role!=='child')return;const ks=kidS(m.id);let ch=false;for(const x of ks.mentor.missions)if(x.status==='active'&&addDays(x.start,(+x.days||1)-1)<TODAY()){x.status='expired';ch=true}if(ch)touchKid(m.id)};setTimeout(expire,4000);
  const autoLoc=()=>{const m=ME();if(m&&m.role==='child'){const l=kidS(m.id).loc;if(!l||l.src!=='paste')tryGPS(m.id,{silent:true})}};setTimeout(autoLoc,3000);setInterval(autoLoc,30*60000);
 })();

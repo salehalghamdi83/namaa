@@ -130,7 +130,7 @@ button.chip{cursor:pointer;min-height:36px}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0}
 .tabs .chip{flex:none}
 .ai{background:var(--soft);border-radius:12px;padding:12px 14px;margin-top:10px;white-space:normal}
-.ai:empty{display:none}.recbtn.on{background:var(--co);color:#fff;animation:pulse 1.2s infinite}.list li.apv{flex-wrap:wrap;gap:6px}.apv>.grow{flex-basis:100%}td{white-space:nowrap}
+.ai:empty{display:none}.msgbar{display:flex;align-items:center;gap:12px;width:100%;border:0;cursor:pointer;background:var(--co);color:#fff;padding:10px max(4vw,14px);font:inherit;position:sticky;top:60px;z-index:19}.msgbar .mic{animation:pulse 1.6s infinite}.recbtn.on{background:var(--co);color:#fff;animation:pulse 1.2s infinite}.list li.apv{flex-wrap:wrap;gap:6px}.apv>.grow{flex-basis:100%}td{white-space:nowrap}
 .ai ul{margin:.3em 0;padding-inline-start:1.2em}
 .msg{padding:8px 12px;border-radius:12px;margin:6px 0;max-width:88%}
 .msg.u{background:var(--em2);color:#fff;margin-inline-start:auto}
@@ -505,7 +505,7 @@ function renderView(){
   return topLite()+`<div class="wrap"><div class="card" style="margin-top:30px"><h2>بانتظار ولي الأمر</h2><p>لم يتم إعداد العائلة بعد. اطلب من والدك فتح هذا التطبيق أولًا وإكمال الإعداد، ثم أعد فتحه.</p></div></div>`;
  }
  if(!ME())return topLite()+`<div class="wrap"><div class="card" style="margin-top:30px"><h2>هذا الحساب لم يعد ضمن العائلة</h2><button class="btn pri" data-a="logoutNow">تسجيل الخروج</button></div></div>`;
- const v=view,top=topBar()+roBanner();
+ const v=view,top=topBar()+roBanner()+msgBanner();
  if(v.n==='sec')return top+secView(v.k,v.s);
  if(v.n==='assess')return top+assessView(v.k);
  if(v.n==='manage'&&PM())return top+manageView();
@@ -514,7 +514,7 @@ function renderView(){
 }
 const topLite=()=>`<header class="top"><span class="brand">${ic('leaf')}<span>نماء</span></span><span id="sync" class="sync"></span></header>`;
 const roBanner=()=>roState?`<div style="background:var(--co);color:#fff;padding:10px max(4vw,14px);font-weight:600">تعذّر حفظ بعض البيانات بسبب الصلاحيات. ما تنجزه محفوظ على هذا الجهاز، وإن تكرر هذا فاطلب من والدك تسجيل دخولك من جديد.</div>`:'';
-const topBar=()=>`<header class="top"><button class="brand" data-a="home">${ic('leaf')}<span>نماء</span></button><span id="sync" class="sync"></span><button class="who" data-a="switch" aria-label="تبديل المستخدم">${esc(ME().name)}</button></header>`;
+const topBar=()=>`<header class="top"><button class="brand" data-a="home">${ic('leaf')}<span>نماء</span></button><span id="sync" class="sync"></span>${msgBtn()}<button class="who" data-a="switch" aria-label="تبديل المستخدم">${esc(ME().name)}</button></header>`;
 
 // ================= setup & profile picker =================
 function setupView(){
@@ -553,6 +553,7 @@ function kidHome(k){
  ${nn.cur?`<p style="margin-top:10px">الآن: <b>${esc(nn.cur.l)}</b>${nn.nxt?` · التالي ${fmtMin(toMin(nn.nxt.t))}: ${esc(nn.nxt.l)}`:''}</p>`:''}
  </div><div class="ring">${ring(pct)}<div class="v">${pct}%<small>إنجاز اليوم</small></div></div></div></section>
  <div class="wrap"><div class="tiles">${tiles}</div>
+ ${pushOn()||PM()?'':`<div class="card" style="border-color:var(--sa)"><div class="row sp"><div><h2>فعّل التنبيهات</h2><p class="mut">لتصلك رسائل والديك الصوتية وتنبيهاتهم فورًا.</p></div><button class="btn acc" data-a="enablePush">تفعيل</button></div></div>`}
  <button class="card kc" data-a="sec" data-k="${k}" data-s="mentor" style="grid-template-columns:auto minmax(0,1fr);border-color:#2b6f8f;color:inherit"><span class="rank" style="background:#2b6f8f;color:#fff">${ic('chat')}</span><span><b>من مرشدك</b><br>${esc(mentorNudge(k))}</span></button>
  ${!ks.profile?`<div class="card" style="border-color:var(--sa)"><div class="row sp"><div><h2>${ks.asDraft?'أكمل ':''}اختبار التعرّف على ${esc(m.name)}${ks.asDraft?` (وصلت للسؤال ${ks.asDraft.i+1})`:''}</h2><p class="mut">أسئلة صوتية قصيرة لمعرفة الشخصية والمهارات والموهبة والمستوى العلمي، وعلى أساسها تُبنى الخطة.</p></div><button class="btn acc" data-a="assess" data-k="${k}">${ic('mic')} ابدأ الاختبار الصوتي</button></div></div>`:''}
  <div class="card"><div class="row sp"><h2>مهام اليوم</h2><span class="mut">${ts.length-left} من ${ts.length}</span></div>${bar(pct)}
@@ -1312,12 +1313,13 @@ function makeDB(){return{doc:path=>({
 async function loadAll(){const r=await sb.from('docs').select('path,data').eq('family_id',fid);if(r.error)throw r.error;
  for(const k of Object.keys(REM))delete REM[k];for(const row of r.data||[])REM[row.path]=row.data;remLoaded=true;Object.keys(SNAP).forEach(dispatch);
  // مستندات لم تُسجَّل عليها متابعة بعد (مثل أبناء أُضيفوا للتو)
- for(const p of Object.keys(REM))if(!C[p]&&!dirty[p]){C[p]=clone(REM[p])}saveLocal();queueRender()}
+ for(const p of Object.keys(REM))if(!dirty[p]&&!inflight[p]&&(!C[p]||!SNAP[p]))C[p]=clone(REM[p]);
+ for(const p of Object.keys(C))if(p.startsWith('msgs/')&&!REM[p]&&!dirty[p])delete C[p];saveLocal();queueRender()}
 function startRealtime(){if(rtChan||!sb||!fid)return;
  rtChan=sb.channel('fam-'+fid).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'family_id=eq.'+fid},pl=>{
-  if(pl.eventType==='DELETE'){const p=pl.old&&pl.old.path;if(p){delete REM[p];dispatch(p)}return}
+  if(pl.eventType==='DELETE'){const p=pl.old&&pl.old.path;if(p){delete REM[p];if(!SNAP[p]&&!dirty[p]){delete C[p];saveLocal();queueRender()}dispatch(p)}return}
   const row=pl.new;if(!row||!row.path)return;REM[row.path]=row.data;
-  if(!SNAP[row.path]&&!dirty[row.path]){C[row.path]=clone(row.data);saveLocal();queueRender()}
+  if(!SNAP[row.path]&&!dirty[row.path]&&!inflight[row.path]){C[row.path]=clone(row.data);saveLocal();queueRender();if(row.path.startsWith('msgs/'+me+'_')&&!row.data.heard)toast('وصلتك رسالة صوتية جديدة')}
   dispatch(row.path)}).subscribe(st=>{if(st==='SUBSCRIBED'&&remLoaded)loadAll().catch(()=>{})});
 }
 const resync=()=>{if(sb&&fid&&online())loadAll().then(()=>flush()).catch(()=>{})};
@@ -1481,6 +1483,54 @@ A.qApprove=el=>{const k=el.dataset.k,p=quranPortion(k);
 F.qLive=(f,d)=>{const k=f.dataset.k,q=kidS(k).quran,p=quranPortion(k),sc=clamp(Math.round(num(d.s)),0,100),pass=sc>=(+S().quranPass||80);
  q.log.push({at:stamp(),what:`سورة ${p.s.n} ${p.from}–${p.to} (حضوري)`,surah:q.surah,from:p.from,st:pass?'ok':'retry',score:sc,note:d.n||'',by:me});
  if(pass){quranAdvance(k);markAuto(k,'q:hifz',Math.max(1,Math.round(2*(+S().pts||10)*sc/100)))}touchKid(k);closeModal();toast(pass?'اعتُمد التسميع':'يحتاج إعادة')};
+// ================= الرسائل الصوتية بين أفراد العائلة =================
+// كل رسالة مستند مستقل: msgs/<المستلم>_<المعرّف> حتى لا تتعارض الكتابة بين المرسل والمستلم
+const msgAll=()=>Object.entries(C).filter(([p,v])=>p.startsWith('msgs/')&&v&&v.to).map(([p,v])=>Object.assign({path:p},v));
+const inboxOf=k=>msgAll().filter(m=>m.to===k).sort((a,b)=>b.at.localeCompare(a.at));
+const sentBy=k=>msgAll().filter(m=>m.from===k).sort((a,b)=>b.at.localeCompare(a.at));
+const unheard=()=>me?inboxOf(me).filter(m=>!m.heard):[];
+const whenTxt=at=>(at.slice(0,10)===TODAY()?'اليوم':at.slice(0,10)===addDays(TODAY(),-1)?'أمس':at.slice(5,10).replace('-','/'))+' '+at.slice(11);
+function msgBanner(){const u=unheard();if(!u.length)return'';const x=u[0],fm=M(x.from);
+ return `<button class="msgbar" data-a="msgOpen" data-p="${esc(x.path)}"><span class="mic" style="width:44px;height:44px;background:#fff;color:var(--co)">${ic('speak')}</span><span style="flex:1;text-align:start"><b>رسالة صوتية من ${esc(fm?fm.name:'')}</b><br><span style="opacity:.9">${whenTxt(x.at)}${u.length>1?` · ومعها ${u.length-1} ${u.length-1===1?'رسالة أخرى':'رسائل أخرى'}`:''}</span></span><span class="btn sm" style="background:#fff;color:var(--ink)">استمع</span></button>`}
+const msgBtn=()=>{const n=unheard().length;return `<button class="who" style="position:relative;padding:6px 10px" data-a="msgs" aria-label="الرسائل الصوتية">${ic('mic')}${n?`<span class="badge" style="top:-6px;inset-inline-end:-6px">${n}</span>`:''}</button>`};
+
+const msgItem=(m,mode)=>{const other=M(mode==='in'?m.from:m.to);return `<li><span class="rank" style="background:${esc(other&&other.color||'#0d5345')};color:#fff">${esc(other?other.name[0]:'؟')}</span><span class="grow"><b>${mode==='in'?'من ':'إلى '}${esc(other?other.name:'')}</b>${m.text?`<br>${esc(m.text)}`:''}<br><span class="mut">${whenTxt(m.at)}${mode==='out'?(m.heard?` · <span style="color:var(--ok)">سُمعت ${whenTxt(m.heard)}</span>`:' · لم تُسمع بعد'):(m.heard?'':' · <b style="color:var(--co)">جديدة</b>')}</span></span>
+ ${m.audio?`<button class="btn sm" data-a="msgPlay" data-p="${esc(m.path)}">${ic('speak')} استمع</button>`:''}${mode==='in'?`<button class="btn sm ghost" data-a="msgCompose" data-to="${esc(m.from)}">رد</button>`:''}</li>`};
+A.msgs=()=>{const tab=T.msgTab||'in',L=tab==='in'?inboxOf(me):sentBy(me);
+ modal(`<div class="row sp"><h2>الرسائل الصوتية</h2><button class="btn pri" data-a="msgCompose">${ic('mic')} رسالة جديدة</button></div>
+ <div class="tabs" style="margin-top:8px"><button class="chip ${tab==='in'?'on':''}" data-a="msgTab" data-t="in">الواردة</button><button class="chip ${tab==='out'?'on':''}" data-a="msgTab" data-t="out">المرسلة</button></div>
+ <ul class="list">${L.slice(0,30).map(m=>msgItem(m,tab)).join('')||'<li class="empty">لا رسائل</li>'}</ul><button class="btn" data-a="close" style="margin-top:10px">إغلاق</button>`)};
+A.msgTab=el=>{T.msgTab=el.dataset.t;A.msgs()};
+async function playMsg(el,path){const m=C[path];if(!m||!m.audio){toast('التسجيل غير متوفر');return}
+ el.disabled=true;el.textContent='جارٍ التحميل…';
+ try{const u=await audioURL(m.audio);const a=document.createElement('audio');a.controls=true;a.src=u;a.style.width='100%';a.style.marginTop='8px';
+  a.addEventListener('play',()=>{if(m.to===me&&!m.heard){m.heard=stamp();touch(path)}},{once:true});
+  el.replaceWith(a);a.play().catch(()=>{})}catch(e){el.disabled=false;el.textContent='تعذّر التحميل، أعد المحاولة'}}
+A.msgPlay=el=>playMsg(el,el.dataset.p);
+A.msgOpen=el=>{const m=C[el.dataset.p];if(!m)return;const fm=M(m.from);
+ modal(`<h2>رسالة صوتية من ${esc(fm?fm.name:'')}</h2><p class="mut">${whenTxt(m.at)}</p>${m.text?`<p style="font-size:18px">${esc(m.text)}</p>`:''}
+ <button class="btn acc" style="min-height:56px;width:100%;margin-top:10px" data-a="msgPlay" data-p="${esc(el.dataset.p)}">${ic('speak')} استمع للرسالة</button>
+ <div class="row" style="margin-top:12px"><button class="btn" data-a="msgCompose" data-to="${esc(m.from)}">${ic('mic')} رد صوتي</button><button class="btn ghost" data-a="close">إغلاق</button></div>`)};
+A.msgCompose=el=>{const to=el&&el.dataset&&el.dataset.to;const others=members().filter(m=>m.id!==me);
+ modal(`<form data-f="msgSend"><h2>رسالة صوتية جديدة</h2><label>إلى</label><div class="chips">
+ ${others.length>1?`<label class="chip" style="margin:0;color:var(--ink)"><input type="checkbox" name="all" data-allto style="width:auto;min-height:0"> الجميع</label>`:''}
+ ${others.map(m=>`<label class="chip" style="margin:0;color:var(--ink)"><input type="checkbox" name="to_${esc(m.id)}" ${to===m.id?'checked':''} style="width:auto;min-height:0"> ${esc(m.name)}</label>`).join('')}</div>
+ <div style="margin-top:14px">${recInput('vmsg','سجّل رسالتك')}</div>
+ <label>نص قصير يظهر مع التنبيه (اختياري)</label><input name="text" maxlength="120" placeholder="مثال: تعال للعشاء، أو أحسنت اليوم!">
+ <div class="row" style="margin-top:12px"><button class="btn pri" data-needs="vmsg" disabled>إرسال</button><button type="button" class="btn" data-a="close">إلغاء</button></div><p class="mut" id="msgst"></p></form>`)};
+document.addEventListener('change',e=>{const i=e.target;if(!i.dataset||i.dataset.allto===undefined)return;i.closest('form').querySelectorAll('input[name^=to_]').forEach(x=>x.checked=i.checked)});
+F.msgSend=async(f,d)=>{const blob=RECS.vmsg;const to=members().filter(m=>m.id!==me&&(d.all||d['to_'+m.id])).map(m=>m.id);
+ if(!to.length){toast('اختر من سترسل إليه');return}if(!blob){toast('سجّل الرسالة أولًا');return}if(!online()){toast('إرسال الرسائل الصوتية يحتاج اتصالًا بالإنترنت');return}
+ const btn=f.querySelector('button.pri'),st=$('#msgst');btn.disabled=true;
+ try{let i=0;for(const k of to){if(st)st.textContent=`جارٍ الإرسال ${++i} من ${to.length}…`;
+   const audio=await saveAudio(blob);const id=rid(),path='msgs/'+k+'_'+id;
+   C[path]={to:k,from:me,at:stamp(),audio,text:(d.text||'').trim().slice(0,120),heard:null};touch(path);
+   sb.functions.invoke('notify',{body:{to:'member',member:k,title:'رسالة صوتية من '+(ME()||{}).name,body:(d.text||'').trim()||'اضغط للاستماع',tag:'vm-'+id}}).catch(()=>{})}
+  delete RECS.vmsg;closeModal();toast(to.length>1?`أُرسلت الرسالة إلى ${to.length}`:'أُرسلت الرسالة')}
+ catch(e){btn.disabled=false;toast('تعذّر الإرسال، حاول مرة أخرى')}};
+// تنظيف الرسائل الأقدم من 14 يومًا (من جهاز الأب أو الأم فقط)
+async function pruneMsgs(){if(!PM()||!db)return;const old=addDays(TODAY(),-14);
+ for(const m of msgAll())if(m.at.slice(0,10)<old){try{if(m.audio)await dropAudio(m.audio);await db.doc(m.path).delete();delete C[m.path]}catch(e){}}saveLocal()}
 // ================= التشغيل =================
 loadLocal();loadDevLocal();sbInit();
 if(myDev&&sb){db=makeDB();cfgSeen=!!cfg()}
@@ -1497,6 +1547,7 @@ render(true);
   cfgSeen=true;ensureSubs();flush();
  }else{try{await ensureSession()}catch(e){}}
  queueRender();
+ setTimeout(()=>pruneMsgs(),8000);
  const expire=()=>{const m=ME();if(!m||m.role!=='child')return;const ks=kidS(m.id);let ch=false;for(const x of ks.mentor.missions)if(x.status==='active'&&addDays(x.start,(+x.days||1)-1)<TODAY()){x.status='expired';ch=true}if(ch)touchKid(m.id)};setTimeout(expire,4000);
  const autoLoc=()=>{const m=ME();if(m&&m.role==='child'){const l=kidS(m.id).loc;if(!l||l.src!=='paste')tryGPS(m.id,{silent:true})}};setTimeout(autoLoc,3000);setInterval(autoLoc,30*60000);
 })();

@@ -14,7 +14,7 @@ function renderView(){
   return topLite()+`<div class="wrap"><div class="card" style="margin-top:30px"><h2>بانتظار ولي الأمر</h2><p>لم يتم إعداد العائلة بعد. اطلب من والدك فتح هذا التطبيق أولًا وإكمال الإعداد، ثم أعد فتحه.</p></div></div>`;
  }
  if(!ME())return topLite()+`<div class="wrap"><div class="card" style="margin-top:30px"><h2>هذا الحساب لم يعد ضمن العائلة</h2><button class="btn pri" data-a="logoutNow">تسجيل الخروج</button></div></div>`;
- const v=view,top=topBar()+roBanner();
+ const v=view,top=topBar()+roBanner()+msgBanner();
  if(v.n==='sec')return top+secView(v.k,v.s);
  if(v.n==='assess')return top+assessView(v.k);
  if(v.n==='manage'&&PM())return top+manageView();
@@ -23,7 +23,7 @@ function renderView(){
 }
 const topLite=()=>`<header class="top"><span class="brand">${ic('leaf')}<span>نماء</span></span><span id="sync" class="sync"></span></header>`;
 const roBanner=()=>roState?`<div style="background:var(--co);color:#fff;padding:10px max(4vw,14px);font-weight:600">تعذّر حفظ بعض البيانات بسبب الصلاحيات. ما تنجزه محفوظ على هذا الجهاز، وإن تكرر هذا فاطلب من والدك تسجيل دخولك من جديد.</div>`:'';
-const topBar=()=>`<header class="top"><button class="brand" data-a="home">${ic('leaf')}<span>نماء</span></button><span id="sync" class="sync"></span><button class="who" data-a="switch" aria-label="تبديل المستخدم">${esc(ME().name)}</button></header>`;
+const topBar=()=>`<header class="top"><button class="brand" data-a="home">${ic('leaf')}<span>نماء</span></button><span id="sync" class="sync"></span>${msgBtn()}<button class="who" data-a="switch" aria-label="تبديل المستخدم">${esc(ME().name)}</button></header>`;
 
 // ================= setup & profile picker =================
 function setupView(){
@@ -62,6 +62,7 @@ function kidHome(k){
  ${nn.cur?`<p style="margin-top:10px">الآن: <b>${esc(nn.cur.l)}</b>${nn.nxt?` · التالي ${fmtMin(toMin(nn.nxt.t))}: ${esc(nn.nxt.l)}`:''}</p>`:''}
  </div><div class="ring">${ring(pct)}<div class="v">${pct}%<small>إنجاز اليوم</small></div></div></div></section>
  <div class="wrap"><div class="tiles">${tiles}</div>
+ ${pushOn()||PM()?'':`<div class="card" style="border-color:var(--sa)"><div class="row sp"><div><h2>فعّل التنبيهات</h2><p class="mut">لتصلك رسائل والديك الصوتية وتنبيهاتهم فورًا.</p></div><button class="btn acc" data-a="enablePush">تفعيل</button></div></div>`}
  <button class="card kc" data-a="sec" data-k="${k}" data-s="mentor" style="grid-template-columns:auto minmax(0,1fr);border-color:#2b6f8f;color:inherit"><span class="rank" style="background:#2b6f8f;color:#fff">${ic('chat')}</span><span><b>من مرشدك</b><br>${esc(mentorNudge(k))}</span></button>
  ${!ks.profile?`<div class="card" style="border-color:var(--sa)"><div class="row sp"><div><h2>${ks.asDraft?'أكمل ':''}اختبار التعرّف على ${esc(m.name)}${ks.asDraft?` (وصلت للسؤال ${ks.asDraft.i+1})`:''}</h2><p class="mut">أسئلة صوتية قصيرة لمعرفة الشخصية والمهارات والموهبة والمستوى العلمي، وعلى أساسها تُبنى الخطة.</p></div><button class="btn acc" data-a="assess" data-k="${k}">${ic('mic')} ابدأ الاختبار الصوتي</button></div></div>`:''}
  <div class="card"><div class="row sp"><h2>مهام اليوم</h2><span class="mut">${ts.length-left} من ${ts.length}</span></div>${bar(pct)}

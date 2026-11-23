@@ -29,12 +29,13 @@ function makeDB(){return{doc:path=>({
 async function loadAll(){const r=await sb.from('docs').select('path,data').eq('family_id',fid);if(r.error)throw r.error;
  for(const k of Object.keys(REM))delete REM[k];for(const row of r.data||[])REM[row.path]=row.data;remLoaded=true;Object.keys(SNAP).forEach(dispatch);
  // مستندات لم تُسجَّل عليها متابعة بعد (مثل أبناء أُضيفوا للتو)
- for(const p of Object.keys(REM))if(!C[p]&&!dirty[p]){C[p]=clone(REM[p])}saveLocal();queueRender()}
+ for(const p of Object.keys(REM))if(!dirty[p]&&!inflight[p]&&(!C[p]||!SNAP[p]))C[p]=clone(REM[p]);
+ for(const p of Object.keys(C))if(p.startsWith('msgs/')&&!REM[p]&&!dirty[p])delete C[p];saveLocal();queueRender()}
 function startRealtime(){if(rtChan||!sb||!fid)return;
  rtChan=sb.channel('fam-'+fid).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'family_id=eq.'+fid},pl=>{
-  if(pl.eventType==='DELETE'){const p=pl.old&&pl.old.path;if(p){delete REM[p];dispatch(p)}return}
+  if(pl.eventType==='DELETE'){const p=pl.old&&pl.old.path;if(p){delete REM[p];if(!SNAP[p]&&!dirty[p]){delete C[p];saveLocal();queueRender()}dispatch(p)}return}
   const row=pl.new;if(!row||!row.path)return;REM[row.path]=row.data;
-  if(!SNAP[row.path]&&!dirty[row.path]){C[row.path]=clone(row.data);saveLocal();queueRender()}
+  if(!SNAP[row.path]&&!dirty[row.path]&&!inflight[row.path]){C[row.path]=clone(row.data);saveLocal();queueRender();if(row.path.startsWith('msgs/'+me+'_')&&!row.data.heard)toast('وصلتك رسالة صوتية جديدة')}
   dispatch(row.path)}).subscribe(st=>{if(st==='SUBSCRIBED'&&remLoaded)loadAll().catch(()=>{})});
 }
 const resync=()=>{if(sb&&fid&&online())loadAll().then(()=>flush()).catch(()=>{})};
